@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+src/*.o
+src/*.dll
+src/*.so
+src/RcppExports*
+src-i386/
+src-x64/

@@ -1,0 +1,15 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^Run_simulation$
+^Run_real$
+^temp$
+^\.RData$
+^\.Rhistory$
+^\.git$
+^\.gitignore$
+^README.md$
+^src/int\.c$
+^src/registerDynamicSymbo\.c$
+^R/Error_fun\.R$
+^src-i386$
+^src-x64$

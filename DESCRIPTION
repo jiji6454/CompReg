@@ -1,0 +1,25 @@
+Package: compReg
+Type: Package
+Title: Compositional Data Regression
+Version: 0.0.0.901
+Author: Zhe Sun
+Maintainer: Zhe Sun <zhe.sun@uconn.edu>
+Description: Group lasso and lasso reguliazrie compostional regression
+	     model. Apply constraints log group lasso and log contract
+	     group lasso to longitudinal compostional data; constraint
+	     log lasso and log contracts lasso to compositional data .
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
+Imports: Rcpp (>= 0.12.13),
+         RcppArmadillo,
+         methods,
+         MASS,
+         fda,
+         orthogonalsplinebasis,
+         plyr,
+         stats
+LinkingTo: Rcpp, RcppArmadillo
+URL: https://github.com/jiji6454/compReg
+BugReports: https://github.com/jiji6454/compReg/issues
