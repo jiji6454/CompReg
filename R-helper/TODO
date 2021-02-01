@@ -1,0 +1,11 @@
+compCL
+	add feature for baseline method
+
+coef.compCL
+	adjust after adding baseline feature in compCL
+	
+GIC.compCL
+	add GIC and AIC feature
+	
+plot.FuncompCGL
+	add "coef" and "L2_curve" features on ylab

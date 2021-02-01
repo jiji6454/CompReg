@@ -1,13 +1,29 @@
-.Rproj.user
-.Rhistory
-.RData
-src/*.o
-src/*.dll
-src/*.so
 src/RcppExports*
-src-i386/
-src-x64/
 .git_old/
 temp/
 Run_real/
 Run_simulation/
+
+# >>> OS Files <<< 
+.DS_Store
+# <<< OS Files >>>
+
+# >>> R Files <<<
+.Rproj.user
+.Rhisory
+.RData
+.Rbuildignore
+# <<< R Files >>>
+
+# >>> R Package Files <<<
+vignettes/
+inst/include/*.h
+# <<< R Package Files >>>
+
+# >>> Compiling Files <<<
+src/*.o
+src/*.dll
+src/*.so
+src-i386/
+src-x64/
+# <<< Compiling Files >>>

@@ -2,7 +2,7 @@
 % Please edit documentation in R/tools.R
 \name{print.FuncompCGL}
 \alias{print.FuncompCGL}
-\title{print a "FuncompCGL" object}
+\title{Print a \code{"FuncompCGL"} object.}
 \usage{
 \method{print}{FuncompCGL}(x, digits = max(3, getOption("digits") - 3), ...)
 }
@@ -11,15 +11,46 @@
 
 \item{digits}{significant digits in printout.}
 
-\item{\dots}{Not used. Other arguments to predict.}
+\item{\dots}{not used.}
 }
 \value{
-a two-column matrix, the first columns is the number of nonzero group counts and
-        the second column is Lambda.
+a two-column matrix; the first column \code{DF} gives the number of nonzero
+coefficients and
+the second column \code{Lam} gives the correspondint \code{lam} values.
 }
 \description{
-Print the nonzero counts for composition varaibles at each lambda along the FuncompCGL path.
+print the number of nonzero coefficient curves for the functional compositional
+predictors at each \code{lam} along the FuncompCGL path.
+}
+\examples{
+df_beta = 5
+p = 30
+beta_C_true = matrix(0, nrow = p, ncol = df_beta)
+beta_C_true[1, ] <- c(-0.5, -0.5, -0.5 , -1, -1)
+beta_C_true[2, ] <- c(0.8, 0.8,  0.7,  0.6,  0.6)
+beta_C_true[3, ] <- c(-0.8, -0.8 , 0.4 , 1 , 1)
+beta_C_true[4, ] <- c(0.5, 0.5, -0.6  ,-0.6, -0.6)
+Data <- Fcomp_Model(n = 50, p = p, m = 2, intercept = TRUE,
+                    SNR = 2, sigma = 2, rho_X = 0, rho_T = 0.5, df_beta = df_beta,
+                    n_T = 20, obs_spar = 1, theta.add = FALSE,
+                    beta_C = as.vector(t(beta_C_true)))
+m1 <- FuncompCGL(y = Data$data$y, X = Data$data$Comp ,
+                 Zc = Data$data$Zc, intercept = Data$data$intercept,
+                 k = df_beta)
+print(m1)
+
+}
+\references{
+Sun, Z., Xu, W., Cong, X., Li G. and Chen K. (2020) \emph{Log-contrast regression with
+functional compositional predictors: linking preterm infant's gut microbiome trajectories
+to neurobehavioral outcome}, \href{https://arxiv.org/abs/1808.02403}{https://arxiv.org/abs/1808.02403}
+\emph{Annals of Applied Statistics}
 }
 \seealso{
-\code{\link{FuncompCGL}}
+\code{\link{FuncompCGL}}, and \code{\link[=coef.FuncompCGL]{coef}},
+\code{\link[=predict.FuncompCGL]{predict}} and
+\code{\link[=plot.FuncompCGL]{plot}} methods for \code{"FuncompCGL"} object.
+}
+\author{
+Zhe Sun and Kun Chen
 }

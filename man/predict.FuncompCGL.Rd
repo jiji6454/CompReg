@@ -2,115 +2,102 @@
 % Please edit documentation in R/tools.R
 \name{predict.FuncompCGL}
 \alias{predict.FuncompCGL}
-\title{make predictions from a "FuncompCGL" object}
+\title{Make prediction from a \code{"FuncompCGL"} object.}
 \usage{
-\method{predict}{FuncompCGL}(object, newx, newZc = NULL, intercept = TRUE,
-  s = NULL, ref = NULL, degree = 3, basis_fun, insert, method, interval,
-  Trange, T.name, ID.name, ...)
+\method{predict}{FuncompCGL}(object, Znew, Zcnew = NULL, s = NULL,
+        T.name = "TIME", ID.name = "Subject_ID",
+        Trange, interval, insert, basis_fun, degree, method, sseq,
+        ...)
 }
 \arguments{
 \item{object}{fitted \code{\link{FuncompCGL}} object.}
 
-\item{newx}{Data frame of new values for functional compositional data which predictions are to be made.}
+\item{Znew}{data frame or matrix \code{X} as in \code{FuncompCGL} with new
+functional compositional data at which prediction is to be made.}
 
-\item{newZc}{Matrix of new values for time-invariate covariates which predictions are to be made.}
+\item{Zcnew}{matrix \code{Zc} as in \code{FuncompCGL} with new values of
+time-invariate covariates at which prediction is to be made.
+Default is \code{NULL}.}
 
-\item{intercept}{whether to include intercept. Default is TRUE.}
+\item{s}{value(s) of the penalty parameter \code{lam} at which predictions are requested.
+Default is the entire sequence used to fit the model.}
 
-\item{s}{value(s) of the penalty parameter \code{lam} at which predictions are required.
-Default is the entire sequence used to create the model.}
-
-\item{ref}{reference variable. If \code{ref} is set to a scalar between \code{[1,p]}, log-contract method is applied with the variable
-\code{ref} as baseline. If \code{ref} = \code{NULL} (default value), constrained group lasso method is applied}
-
-\item{degree}{degree of basis - default value is 3.}
-
-\item{basis_fun}{a function of basis. For now one of the following three types,
-\itemize{
-\item \code{bs} B-splines see \code{\link{bs}}.
-\item \code{OBasis} Orthoganal B-splies, see \code{\link{orthogonalsplinebasis}}.
-\item \code{fourier} Fourier basis, see \code{\link{fda}}
-}
-Default is \code{"bs"}.}
-
-\item{insert}{way to interpolation. If \code{insert} = \code{"X"} or \code{"basis"}, dense time sequence is generated, equally space
-by \code{min(diff(sseq))/20)}, where \code{sseq} is sorted set of all observed time points.
-\itemize{
-\item \code{"FALSE"} no interpolation.
-\item \code{"X"} linear interpolation of compositional data.
-\item \code{"basis"} compositional data is considered as step function, imposing basis on un-observed time points for each subject.
-}
-Default is \code{"FALSE"}}
-
-\item{method}{method used to approximate integral.
-\itemize{
-\item \code{"trapezoidal"} Sum up area under trapezoidal formulated by values of function at two adjacent observed time points. See \code{\link{ITG_trap}}.
-\item \code{"step"} Sum up area under rectangle formulated by step function at observed time points. See \code{\link{ITG_step}}.
-}
-Default is \code{"trapezoidal"}}
-
-\item{interval}{a character string sepcifying domain of integral
-\itemize{
-  \item "Original" On original time scale, interval = range(Time).
-  \item "Standard" Time points are mapped onto [0,1], interval = (0,1).
-}
-Default is \code{"Original"}}
-
-\item{Trange}{range of time points}
-
-\item{T.name}{characters specifying names of time varaible and Subject ID respectively in X,
-only needed as X is data frame of longitudinal compositinal varaibles.
+\item{T.name}{a character string specifying names of the time variable and the Subject
+ID variable in \code{X}.
+This is only needed when X is a data frame or matrix of the functional
+compositional predictors.
 Default are \code{"TIME"} and \code{"Subject_ID"}.}
 
-\item{ID.name}{characters specifying names of time varaible and Subject ID respectively in X,
-only needed as X is data frame of longitudinal compositinal varaibles.
+\item{ID.name}{a character string specifying names of the time variable and the Subject
+ID variable in \code{X}.
+This is only needed when X is a data frame or matrix of the functional
+compositional predictors.
 Default are \code{"TIME"} and \code{"Subject_ID"}.}
 
-\item{\dots}{Not used. Other arguments to predict.}
+\item{Trange, interval, insert, basis_fun, degree, method}{the same as those in \code{FuncompCGL}.}
+
+\item{sseq}{full set of potential time points of observations;
+used for interpolation when \code{insert = "X"}
+or \code{insert = "basis"}.}
+
+\item{\dots}{not used.}
 }
 \value{
-prediction values at the requested values for \code{s}.
+predicted values at the requested value(s) for \code{s}.
 }
 \description{
-predicts fitted values and class labels from a fitted \code{\link{FuncompCGL}} object.
+Make prediction based on a fitted \code{\link{FuncompCGL}} object.
 }
 \details{
-\code{s} is the new vector at which predictions are requested. If \code{s} is not in the lambda
-       sequence used for fitting the model, the \code{predict} function will use linear interpolation
-       to make predictions. The new values are interpolated using a fraction of predicted values from
-       both left and right \code{lam} indices.
+\code{s} is the vector at which predictions are requested. If \code{s} is not in the \code{lam}
+sequence used for fitting the model, the \code{predict} function uses linear interpolation.
+\cr
+If the data frame \code{X} is provided in \code{FuncompCGL} mode, the integral
+for new data \code{newx} is taken the same as that in the fitted
+\code{FuncompCGL} model. This means that the parameters \code{degree},
+\code{basis_fun}, \code{insert}, \code{method}, \code{inteval},
+\code{Trange}, and \code{K} are exactly the same as these in the provided
+\code{object}. If \code{insert="X"} or \code{"basis"}, \code{sseq} is the
+sorted sequence of all the observed time points in fitting \code{FuncompCGL} model and
+all the observed time points in \code{newx}. Then interpolation is
+conducted on \code{sseq}. If matrix \code{X} after integral is provided in
+the \code{FuncompCGL} object, these parameters are required.
 }
 \examples{
-
-df_beta = 5
 p = 30
+n_train = 50
+n_test = 30
+df_beta = 5
 beta_C_true = matrix(0, nrow = p, ncol = df_beta)
-beta_C_true[3, ] <- c(-0.8, -0.8 , 0.4 , 1 , 1)
-beta_C_true[4, ] <- c(0.5, 0.5, -0.6  ,-0.6, -0.6)
 beta_C_true[1, ] <- c(-0.5, -0.5, -0.5 , -1, -1)
 beta_C_true[2, ] <- c(0.8, 0.8,  0.7,  0.6,  0.6)
-Data <- Model(n = 50, p = p, m = 2, intercept = TRUE,
-              SNR = 2, sigma = 2,
-              rho_X = 0, rho_T = 0.5, df_beta = df_beta,
-              n_T = 20, obs_spar = 0.8, theta.add = c(3,4,5),
-              beta_C = as.vector(t(beta_C_true)))
-TEST <- Model(n = 100, p = p, m = 2, intercept = TRUE,
-              SNR = 2, sigma = 2,
-              rho_X = 0, rho_T = 0.5, df_beta = df_beta,
-              n_T = 20, obs_spar = 0.8, theta.add = c(3,4,5),
-              beta_C = as.vector(t(beta_C_true)))
-y <- Data$data$y
-X <- Data$data$Comp
-Zc <- Data$data$Zc
-intercept <- Data$data$intercept
+beta_C_true[3, ] <- c(-0.8, -0.8 , 0.4 , 1 , 1)
+beta_C_true[4, ] <- c(0.5, 0.5, -0.6  ,-0.6, -0.6)
+Data <- Fcomp_Model(n = n_train, p = p, m = 0, intercept = TRUE,
+                    SNR = 2, sigma = 2,
+                    rho_X = 0, rho_T = 0.5, df_beta = df_beta,
+                    n_T = 20, obs_spar = 1, theta.add = c(3,4,5),
+                    beta_C = as.vector(t(beta_C_true)))
+m1 <- FuncompCGL(y = Data$data$y, X = Data$data$Comp , Zc = Data$data$Zc,
+                 intercept = Data$data$intercept, k = df_beta)
+arg_list <- as.list(Data$call)[-1]
+arg_list$n <- n_test
+TEST <- do.call(Fcomp_Model, arg_list)
+predmat <- predict(m1, Znew = TEST$data$Comp, Zcnew = TEST$data$Zc)
+predmat <- predict(m1, Znew = TEST$data$Comp, Zcnew = TEST$data$Zc, s = c(0.5, 0.1, 0.05))
 
-k_use <- df_beta
-m1 <- FuncompCGL(y = y, X = X , Zc = Zc, intercept = intercept,
-                 k = k_use, basis_fun = "bs",
-                 insert = "FALSE", method = "t",
-                 dfmax = p, tol = 1e-6)
-predict(m1, newx = TEST$data$Comp, newZc = TEST$data$Zc, intercept = intercept)
+}
+\references{
+Sun, Z., Xu, W., Cong, X., Li G. and Chen K. (2020) \emph{Log-contrast regression with
+functional compositional predictors: linking preterm infant's gut microbiome trajectories
+to neurobehavioral outcome}, \href{https://arxiv.org/abs/1808.02403}{https://arxiv.org/abs/1808.02403}
+\emph{Annals of Applied Statistics}
 }
 \seealso{
-\code{\link{FuncompCGL}}
+\code{\link{FuncompCGL}}, and \code{\link[=coef.FuncompCGL]{coef}},
+\code{\link[=plot.FuncompCGL]{plot}} and \code{\link[=print.FuncompCGL]{print}}
+methods for \code{"FuncompCGL"} object.
+}
+\author{
+Zhe Sun and Kun Chen
 }

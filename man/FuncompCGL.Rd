@@ -2,182 +2,249 @@
 % Please edit documentation in R/FuncompCGL.R
 \name{FuncompCGL}
 \alias{FuncompCGL}
-\title{Fits regularization paths for longitudinal compositional data with group-lasso penalty.}
+\title{Fit regularization paths of sparse log-contrast regression with functional
+compositional predictors.}
 \usage{
-FuncompCGL(y, X, Zc = NULL, intercept = TRUE, ref = NULL, k, degree = 3,
-  basis_fun = c("bs", "OBasis", "fourier"), insert = c("FALSE", "X",
-  "basis"), method = c("trapezoidal", "step"), interval = c("Original",
-  "Standard"), Trange, T.name = "TIME", ID.name = "Subject_ID", W = rep(1,
-  times = p - length(ref)), dfmax = p - length(ref), pfmax = min(dfmax *
-  1.5, p - length(ref)), lam = NULL, nlam = 100, lambda.factor = ifelse(n
-  < p1, 0.05, 0.001), tol = 0, mu_ratio = 1.01, outer_maxiter = 1e+08,
-  outer_eps = 1e-08, inner_maxiter = 10000, inner_eps = 1e-08)
+FuncompCGL(y, X, Zc = NULL, intercept = TRUE, ref = NULL,
+           k, degree = 3, basis_fun = c("bs", "OBasis", "fourier"),
+           insert = c("FALSE", "X", "basis"), method = c("trapezoidal", "step"),
+           interval = c("Original", "Standard"), Trange,
+           T.name = "TIME", ID.name = "Subject_ID",
+           W = rep(1,times = p - length(ref)),
+           dfmax = p - length(ref), pfmax = min(dfmax * 1.5, p - length(ref)),
+           lam = NULL, nlam = 100, lambda.factor = ifelse(n < p1, 0.05, 0.001),
+           tol = 1e-8, mu_ratio = 1.01,
+           outer_maxiter = 1e+6, outer_eps = 1e-8,
+           inner_maxiter = 1e+4, inner_eps = 1e-8)
 }
 \arguments{
-\item{y}{a vector of response variable.}
+\item{y}{response vector with length n.}
 
-\item{X}{a data frame or matrix.
+\item{X}{data frame or matrix.
 \itemize{
-\item If \code{dim(X)[1]} > \eqn{n}, \eqn{n} is the sample size,
-      \code{X} should be a data frame of longitudinal compositinal predictors with number \eqn{p},
-      including subject ID and time variable. Order of subject ID should be the same as that of \code{y}.
-\item If \code{dim(X)[1]}=\eqn{n}, \code{X} is considered as after taken integration, a \eqn{n*(p*k)} matrix.
+\item If \code{nrow(X)} > \eqn{n},
+      \code{X} should be a data frame or matrix of the functional compositional
+      predictors with \eqn{p} columns for the values of the composition components,
+      a column indicating subject ID and a column of observation times.
+      Order of Subject ID should be the SAME as that of \code{y}.
+      Zero entry is not allowed.
+\item If \code{nrow(X)[1]}=\eqn{n},
+      \code{X} is considered as after taken integration, a
+      \code{n*(k*p - length(ref))} matrix.
 }}
 
-\item{Zc}{A design matrix for control variables, could be missing. Default is NULL. No penalty is imposed.}
+\item{Zc}{a \eqn{n\times p_{c}}{n*p_c} design matrix of unpenalized variables.
+Default is NULL.}
 
-\item{intercept}{whether to include intercept. Default is TRUE.}
+\item{intercept}{Boolean, specifying whether to include an intercept.
+Default is TRUE.}
 
-\item{ref}{reference variable. If \code{ref} is set to a scalar between \code{[1,p]}, log-contract method is applied with the variable
-\code{ref} as baseline. If \code{ref} = \code{NULL} (default value), constrained group lasso method is applied}
-
-\item{k}{a scaler, degree of freedom of basis.}
-
-\item{degree}{degree of basis - default value is 3.}
-
-\item{basis_fun}{a function of basis. For now one of the following three types,
+\item{ref}{reference level (baseline), either an integer between \eqn{[1,p]} or \code{NULL}.
+Default value is \code{NULL}.
 \itemize{
-\item \code{bs} B-splines see \code{\link{bs}}.
-\item \code{OBasis} Orthoganal B-splies, see \code{\link{orthogonalsplinebasis}}.
-\item \code{fourier} Fourier basis, see \code{\link{fda}}
-}
-Default is \code{"bs"}.}
+\item If \code{ref} is set to be an integer between \code{[1,p]}, the group lasso penalized \emph{log-contrast} model (with log-ratios) is fitted
+with the \code{ref}-th component chosed as baseline.
+\item If \code{ref} is set to be \code{NULL}, the linearly constrained group lasso penalized \emph{log-contrast} model is fitted.
+}}
 
-\item{insert}{way to interpolation. If \code{insert} = \code{"X"} or \code{"basis"}, dense time sequence is generated, equally space
-by \code{min(diff(sseq))/20)}, where \code{sseq} is sorted set of all observed time points.
-\itemize{
-\item \code{"FALSE"} no interpolation.
-\item \code{"X"} linear interpolation of compositional data.
-\item \code{"basis"} compositional data is considered as step function, imposing basis on un-observed time points for each subject.
-}
-Default is \code{"FALSE"}}
+\item{k}{an integer, degrees of freedom of the basis function.}
 
-\item{method}{method used to approximate integral.
-\itemize{
-\item \code{"trapezoidal"} Sum up area under trapezoidal formulated by values of function at two adjacent observed time points. See \code{\link{ITG_trap}}.
-\item \code{"step"} Sum up area under rectangle formulated by step function at observed time points. See \code{\link{ITG_step}}.
-}
-Default is \code{"trapezoidal"}}
+\item{degree}{degrees of freedom of the basis function. Default value is 3.}
 
-\item{interval}{a character string sepcifying domain of integral
+\item{basis_fun}{method to generate basis:
 \itemize{
-  \item "Original" On original time scale, interval = range(Time).
-  \item "Standard" Time points are mapped onto [0,1], interval = (0,1).
+\item \code{"bs"}(Default) B-splines. See fucntion \code{\link[splines]{bs}}.
+\item \code{"OBasis"} Orthoganal B-splines. See function \code{\link[orthogonalsplinebasis]{OBasis}}
+      and package \pkg{orthogonalsplinebasis}.
+\item \code{"fourier"} Fourier basis. See fucntion \code{\link[fda]{create.fourier.basis}}
+      and package \pkg{fda}.
+}}
+
+\item{insert}{a character string sepcifying method to perform functional interpolation.
+\itemize{
+\item \code{"FALSE"}(Default) no interpolation.
+\item \code{"X"} linear interpolation of functional compositional
+      data along the time grid.
+\item \code{"basis"} the functional compositional data is interplolated
+      as a step function along the time grid.
 }
-Default is \code{"Original"}}
+If \code{insert} = \code{"X"} or \code{"basis"}, interplolation is conducted
+on \code{sseq}, where \code{sseq} is the sorted sequence of all the observed time points.}
+
+\item{method}{a character string sepcifying method used to approximate integral.
+\itemize{
+\item \code{"trapezoidal"}(Default) Sum up areas under the trapezoids.
+\item \code{"step"} Sum up area under the rectangles.
+}}
+
+\item{interval}{a character string sepcifying the domain of the integral.
+\itemize{
+  \item \code{"Original"}(Default) On the original time scale,
+        \code{interval} = \code{range(Time)}.
+  \item \code{"Standard"} Time points are mapped onto \eqn{[0,1]},
+        \code{interval} = \code{c(0,1)}.
+}}
 
 \item{Trange}{range of time points}
 
-\item{T.name, ID.name}{characters specifying names of time varaible and Subject ID respectively in X,
-only needed as X is data frame of longitudinal compositinal varaibles.
+\item{T.name, ID.name}{a character string specifying names of the time variable and the Subject
+ID variable in \code{X}.
+This is only needed when X is a data frame or matrix of the functional
+compositional predictors.
 Default are \code{"TIME"} and \code{"Subject_ID"}.}
 
-\item{W}{a vector in length of p (the total number of groups), matrix with dimension \code{p1*p1} or character specifying function
-used to calculate inverted weight matrix for each group.
+\item{W}{a vector of length p (the total number of groups),
+or a matrix with dimension \eqn{p_{1} \times p_{1}}{p1*p1}, where
+\code{p1=(p - length(ref)) * k},
+or character specifying the function used to calculate weight matrix for each group.
 \itemize{
-\item If vector, works as penalty factor. Separate penalty weights can be applied to each group of beta'ss.
-      to allow differential shrinkage. Can be 0 for some groups, which implies no shrinkage, and results in that group
-      always being included in the model.
-\item If matrix, a block diagonal matrix. Diagonal elements are inverted weights matrics for each group.
-\item if character, user should provide the function for inverted weights matrics.
-}
-Default value is rep(1, times = p).}
+\item a vector of penalization weights for the groups of coefficients. A zero weight implies no shrinkage.
+\item a diagonal matrix with positive diagonal elements.
+\item if character string of function name or an object of type \code{function} to compute the weights.
+}}
 
-\item{dfmax}{limit the maximum number of groups in the model. Useful for very large \eqn{p},
-if a partial path is desired. Default is \eqn{p}.}
+\item{dfmax}{limit the maximum number of groups in the model. Useful for handling very large \eqn{p}, if a partial path is desired.
+Default is \eqn{p}.}
 
-\item{pfmax}{limit the maximum number of groups ever to be nonzero. For example once a group enters the
-model along the path, no matter how many times it exits or re-enters model through the path,
-it will be counted only once. Default is \code{min(dfmax*1.5, p)}.}
+\item{pfmax}{limit the maximum number of groups ever to be nonzero. For example once a group enters the model along the path,
+no matter how many times it re-enters the model through the path, it will be counted only once.
+Default is \code{min(dfmax*1.5, p)}.}
 
-\item{lam}{a user supplied lambda sequence. Typically, by leaving this option unspecified users can have the
-program compute its own \code{lam} sequence based on \code{nlam} and \code{lambda.factor}.
-Supplying a value of lambda overrides this.
-If \code{lam} is provided but a scaler and \code{nlam}\eqn{>}1,
-\code{lam} sequence is also created starting from \code{lam}.
-If a sequence of lambda is provided, it is better to supply a decreasing one,
-if not, the program will sort user-defined \code{lambda} sequence in decreasing order
-automatically.}
+\item{lam}{a user supplied lambda sequence.
+If \code{lam} is provided as a scaler and \code{nlam}\eqn{>1}, \code{lam} sequence is created starting from
+\code{lam}. To run a single value of \code{lam}, set \code{nlam}\eqn{=1}.
+The program will sort user-defined \code{lambda} sequence in decreasing order.}
 
-\item{nlam}{the length of \code{lam} sequence. Default is 100.}
+\item{nlam}{the length of the \code{lam} sequence. Default is 100. No effect if \code{lam} is
+provided.}
 
-\item{lambda.factor}{the factor for getting the minimal lambda in \code{lam} sequence, where
-\code{min(lam)} = \code{lambda.factor} * \code{max(lam)}.
-\code{max(lam)} is the smallest value of \code{lam} for which all penalized group are zero's.
-The default depends on the relationship between \eqn{n}
-and \eqn{p1}
-(the number of predictors to be penalized).
-If \eqn{n >= p1}, the default is \code{0.001}, close to zero.
-If \eqn{n < p1}, the default is \code{0.05}. A very small value of
-\code{lambda.factor}
-will lead to a saturated fit. It takes no effect if there is user-defined lambda sequence.}
+\item{lambda.factor}{the factor for getting the minimal lambda in \code{lam} sequence,
+where \code{min(lam)} = \code{lambda.factor} * \code{max(lam)}.
+\code{max(lam)} is the smallest value of \code{lam} for which all penalized group are 0's.
+If \eqn{n >= p1}, the default is \code{0.001}. If \eqn{n < p1}, the default is \code{0.05}.}
 
-\item{tol}{tolerance for vectors betas to be considered as none zero's. For example, coefficient
-\eqn{\beta_j} for group j, if \eqn{max(abs(\beta_j))} < \code{tol}, set \eqn{\beta_j} as 0's.
-Default value is 0.}
+\item{tol}{tolerance for coefficient to be considered as non-zero.
+Once the convergence criterion is satisfied, for each element \eqn{\beta_j} in coefficient vector
+\eqn{\beta}, \eqn{\beta_j = 0} if \eqn{\beta_j < tol}.}
 
-\item{mu_ratio}{\code{mu_ratio} is the increasing ratio for \code{u}. Default value is 1.01.
+\item{mu_ratio}{the increasing ratio of the penalty parameter \code{u}. Default value is 1.01.
 Inital values for scaled Lagrange multipliers are set as 0's.
-If \code{mu_ratio} < 1,
-there is no linear constraints included. Group lasso coefficients are estimated.}
+If \code{mu_ratio} < 1, the program automatically set
+the initial penalty parameter \code{u} as 0
+and \code{outer_maxiter} as 1, indicating
+that there is no linear constraint.}
 
-\item{outer_maxiter}{\code{outer_maxiter} is the maximun munber of loops allowed for Augmented Lanrange method;
-and \code{outer_eps} is the convergence termination tolerance.}
+\item{outer_maxiter, outer_eps}{\code{outer_maxiter} is the maximum number of loops allowed for the augmented Lanrange method;
+and \code{outer_eps} is the corresponding convergence tolerance.}
 
-\item{outer_eps}{\code{outer_maxiter} is the maximun munber of loops allowed for Augmented Lanrange method;
-and \code{outer_eps} is the convergence termination tolerance.}
-
-\item{inner_maxiter}{\code{inner_maxiter} is the maximun munber of loops allowed for blockwise-GMD;
-and \code{inner_eps} is the convergence termination tolerance.}
-
-\item{inner_eps}{\code{inner_maxiter} is the maximun munber of loops allowed for blockwise-GMD;
-and \code{inner_eps} is the convergence termination tolerance.}
+\item{inner_maxiter, inner_eps}{\code{inner_maxiter} is the maximum number of loops allowed for blockwise-GMD;
+and \code{inner_eps} is the corresponding convergence tolerance.}
 }
 \value{
-An object with S3 calss \code{\link{FuncompCGL}}
-\item{Z}{integral matrix for longitudinal compositinal predictors with dimension \eqn{n*(p*k)}.}
-\item{lam}{the actual sequence of \code{lam} values used.}
-\item{df}{the number of non-zero groups in estimated coefficients for \code{Z} at each value of \code{lam}}
-\item{beta}{a matrix of coefficients for \code{cbind{Z, Zc, 1_n}}, with \code{nlam} rows.}
-\item{dim}{dimension of coefficient matrix}
-\item{call}{the call that produced this object.}
+An object with S3 class \code{"FuncompCGL"}, which is a list containing:
+\item{Z}{the integral matrix for the functional compositional predictors with
+         dimension \eqn{n \times (pk)}{n*(pk)}.}
+\item{lam}{the sequence of \code{lam} values.}
+\item{df}{the number of non-zero groups in the estimated coefficients for
+          the functional compositional predictors at each value of \code{lam}.}
+\item{beta}{a matrix of coefficients with \code{length(lam)} columns and
+            \eqn{p_{1}+p_{c}+1}{p_1+p_c+1} rows, where \code{p_1=p*k}.
+            The first \eqn{p_{1}}{p_1} rows are the estimated values for
+            the coefficients for the functional compositional preditors, and the
+            last row is for the intercept. If \code{intercept = FALSE}, the last row is 0's.}
+\item{dim}{dimension of the coefficient matrix.}
+\item{sseq}{sequence of the time points.}
+\item{call}{the call that produces this object.}
 }
 \description{
-Fits regularization paths for longitudinal compositional data with group-lasso penalty at a sequence of regularization parameters lambda and fixed degree of freedom of basis.
+Fit the penalized \emph{log-contrast} regression with functional compositional predictors
+proposed by Zhe et al. (2020) <arXiv:1808.02403>. The model estimation is
+conducted by minimizing a linearly constrained group lasso criterion. The regularization
+paths are computed for the group lasso penalty at grid values of the regularization
+parameter \code{lam} and the degree of freedom of the basis function \code{K}.
+}
+\details{
+The \emph{functional log-contrast regression model}
+for compositional predictors is defined as
+\deqn{
+y = 1_n\beta_0 + Z_c\beta_c + \int_T Z(t)\beta(t)dt + e, s.t. (1_p)^T \beta(t)=0  \forall t \in T,
+}
+where \eqn{\beta_0} is the intercept,
+\eqn{\beta_c} is the regression coefficient vector with length \eqn{p_c} corresponding to the control variables,
+\eqn{\beta(t)} is the functional regression coefficient vector with length \eqn{p} as a funtion of \eqn{t}
+and \eqn{e} is the random error vector with zero mean with length \eqn{n}.
+Moreover, \code{Z(t)} is the log-transformed functional compostional data.
+If zero(s) exists in the original functional compositional data, user should pre-process these zero(s).
+For example, if count data provided, user could replace 0's with 0.5.
+\cr
+After adopting a truncated basis expansion approach to re-express \eqn{\beta(t)}
+\deqn{\beta(t) = B \Phi(t),}
+where \eqn{B} is a p-by-k unkown but fixed coefficient matrix, and \eqn{\Phi(t)} consists of basis with
+degree of freedom \eqn{k}. We could write \emph{functional log-contrast regression model} as
+\deqn{
+y = 1_n\beta_0 + Z_c\beta_c + Z\beta + e, s.t. \sum_{j=1}^{p}\beta_j=0_k,
+}
+where \eqn{Z} is a n-by-pk matrix corresponding to the integral, \eqn{\beta=vec(B^T)} is a
+pk-vector with every each k-subvector corresponding to the coefficient vector for the \eqn{j}-th
+compositional component.
+\cr
+To enable variable selection, \code{FuncompCGL} model is estimated via linearly constrained group lasso,
+\deqn{
+argmin_{\beta_0, \beta_c, \beta}(\frac{1}{2n}\|y - 1_n\beta_0 - Z_c\beta_c - Z\beta\|_2^2
++ \lambda \sum_{j=1}^{p} \|\beta_j\|_2), s.t. \sum_{j=1}^{p} \beta_j = 0_k.
+}
 }
 \examples{
-
 df_beta = 5
 p = 30
 beta_C_true = matrix(0, nrow = p, ncol = df_beta)
-beta_C_true[3, ] <- c(-0.8, -0.8 , 0.4 , 1 , 1)
-beta_C_true[4, ] <- c(0.5, 0.5, -0.6  ,-0.6, -0.6)
 beta_C_true[1, ] <- c(-0.5, -0.5, -0.5 , -1, -1)
 beta_C_true[2, ] <- c(0.8, 0.8,  0.7,  0.6,  0.6)
-Data <- Model(n = 50, p = p, m = 2, intercept = TRUE,
-              SNR = 2, sigma = 2,
-              rho_X = 0, rho_T = 0.5, df_beta = df_beta,
-              n_T = 20, obs_spar = 0.8, theta.add = c(3,4,5),
-              beta_C = as.vector(t(beta_C_true)))
-y <- Data$data$y
-X <- Data$data$Comp
-Zc <- Data$data$Zc
-intercept <- Data$data$intercept
-
-k_use <- df_beta
-m1 <- FuncompCGL(y = y, X = X , Zc = Zc, intercept = intercept,
-                 k = k_use, basis_fun = "bs",
-                 insert = "FALSE", method = "t",
-                 dfmax = p, tol = 1e-6)
+beta_C_true[3, ] <- c(-0.8, -0.8 , 0.4 , 1 , 1)
+beta_C_true[4, ] <- c(0.5, 0.5, -0.6  ,-0.6, -0.6)
+Data <- Fcomp_Model(n = 50, p = p, m = 0, intercept = TRUE,
+                    SNR = 4, sigma = 3, rho_X = 0, rho_T = 0.6, df_beta = df_beta,
+                    n_T = 20, obs_spar = 1, theta.add = FALSE,
+                    beta_C = as.vector(t(beta_C_true)))
+m1 <- FuncompCGL(y = Data$data$y, X = Data$data$Comp, Zc = Data$data$Zc,
+                 intercept = Data$data$intercept, k = df_beta, tol = 1e-10)
 print(m1)
+plot(m1)
+beta <- coef(m1)
+arg_list <- as.list(Data$call)[-1]
+arg_list$n <- 30
+TEST <- do.call(Fcomp_Model, arg_list)
+y_hat <- predict(m1, Znew = TEST$data$Comp, Zcnew = TEST$data$Zc)
+plot(y_hat[, floor(length(m1$lam)/2)], TEST$data$y,
+     ylab = "Observed Response", xlab = "Predicted Response")
+
 beta <- coef(m1, s = m1$lam[20])
-#beta <- coef(m1)
-
-beta_C <- matrix(beta[1:(p*k_use)], nrow = p, byrow = TRUE)
+beta_C <- matrix(beta[1:(p*df_beta)], nrow = p, byrow = TRUE)
 colSums(beta_C)
-Non.zero <- apply(beta_C, 1, function(x) ifelse(max(abs(x)) == 0, FALSE, TRUE))
-Non.zero <- (1:p)[Non.zero]
+Non.zero <- (1:p)[apply(beta_C, 1, function(x) max(abs(x)) > 0)]
 Non.zero
-plot(m1, ylab = "L2", p = p , k = k_use)
 
+}
+\references{
+Sun, Z., Xu, W., Cong, X., Li G. and Chen K. (2020) \emph{Log-contrast regression with
+functional compositional predictors: linking preterm infant's gut microbiome trajectories
+to neurobehavioral outcome}, \href{https://arxiv.org/abs/1808.02403}{https://arxiv.org/abs/1808.02403}
+\emph{Annals of Applied Statistics}.
+
+Yang, Y. and Zou, H. (2015) \emph{A fast unified algorithm for computing
+group-lasso penalized learning problems}, \href{https://link.springer.com/article/10.1007/s11222-014-9498-5}{
+https://link.springer.com/article/10.1007/s11222-014-9498-5}
+\emph{Statistics and Computing} \strong{25(6)} 1129-1141.
+
+Aitchison, J. and Bacon-Shone, J. (1984) \emph{Log-contrast models for experiments with mixtures},
+\emph{Biometrika} \strong{71} 323-330.
+}
+\seealso{
+\code{\link{cv.FuncompCGL}} and \code{\link{GIC.FuncompCGL}}, and
+\code{\link[=predict.FuncompCGL]{predict}}, \code{\link[=coef.FuncompCGL]{coef}},
+\code{\link[=plot.FuncompCGL]{plot}} and \code{\link[=print.FuncompCGL]{print}}
+methods for \code{"FuncompCGL"} object.
+}
+\author{
+Zhe Sun and Kun Chen
 }

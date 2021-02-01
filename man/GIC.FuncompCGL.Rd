@@ -2,204 +2,187 @@
 % Please edit documentation in R/GIC.R
 \name{GIC.FuncompCGL}
 \alias{GIC.FuncompCGL}
-\title{GIC cirterion selection for FuncompCGL}
+\title{Compute information crieteria for the \code{FuncompCGL} model.}
 \usage{
-GIC.FuncompCGL(y, X, Zc = NULL, intercept = TRUE, ref = NULL,
-  lam = NULL, nlam = 100, W = rep(1, times = p - length(ref)), k = 4:10,
-  outer_maxiter = 1e+06, mu_ratio = 1.01, ...)
+GIC.FuncompCGL(y, X, Zc = NULL, lam = NULL, nlam = 100, k = 4:10, ref = NULL,
+              intercept = TRUE, W = rep(1,times = p - length(ref)),
+              type = c("GIC", "BIC", "AIC"),
+              mu_ratio = 1.01, outer_maxiter = 1e+6, ...)
 }
 \arguments{
-\item{y}{a vector of response variable.}
+\item{y}{response vector with length n.}
 
-\item{X}{a data frame or matrix.
+\item{X}{data frame or matrix.
 \itemize{
-\item If \code{dim(X)[1]} > \eqn{n}, \eqn{n} is the sample size,
-      \code{X} should be a data frame of longitudinal compositinal predictors with number \eqn{p},
-      including subject ID and time variable. Order of subject ID should be the same as that of \code{y}.
-\item If \code{dim(X)[1]}=\eqn{n}, \code{X} is considered as after taken integration, a \eqn{n*(p*k)} matrix.
+\item If \code{nrow(X)} > \eqn{n},
+      \code{X} should be a data frame or matrix of the functional compositional
+      predictors with \eqn{p} columns for the values of the composition components,
+      a column indicating subject ID and a column of observation times.
+      Order of Subject ID should be the SAME as that of \code{y}.
+      Zero entry is not allowed.
+\item If \code{nrow(X)[1]}=\eqn{n},
+      \code{X} is considered as after taken integration, a
+      \code{n*(k*p - length(ref))} matrix.
 }}
 
-\item{Zc}{A design matrix for control variables, could be missing. Default is NULL. No penalty is imposed.}
+\item{Zc}{a \eqn{n\times p_{c}}{n*p_c} design matrix of unpenalized variables.
+Default is NULL.}
 
-\item{intercept}{whether to include intercept. Default is TRUE.}
+\item{lam}{a user supplied lambda sequence.
+If \code{lam} is provided as a scaler and \code{nlam}\eqn{>1}, \code{lam} sequence is created starting from
+\code{lam}. To run a single value of \code{lam}, set \code{nlam}\eqn{=1}.
+The program will sort user-defined \code{lambda} sequence in decreasing order.}
 
-\item{ref}{reference variable. If \code{ref} is set to a scalar between \code{[1,p]}, log-contract method is applied with the variable
-\code{ref} as baseline. If \code{ref} = \code{NULL} (default value), constrained group lasso method is applied}
+\item{nlam}{the length of the \code{lam} sequence. Default is 100. No effect if \code{lam} is
+provided.}
 
-\item{lam}{a user supplied lambda sequence. Typically, by leaving this option unspecified users can have the
-program compute its own \code{lam} sequence based on \code{nlam} and \code{lambda.factor}.
-Supplying a value of lambda overrides this.
-If \code{lam} is provided but a scaler and \code{nlam}\eqn{>}1,
-\code{lam} sequence is also created starting from \code{lam}.
-If a sequence of lambda is provided, it is better to supply a decreasing one,
-if not, the program will sort user-defined \code{lambda} sequence in decreasing order
-automatically.}
+\item{k}{an integer vector specifying the degrees of freedom of the basis function.}
 
-\item{nlam}{the length of \code{lam} sequence. Default is 100.}
-
-\item{W}{a vector in length of p (the total number of groups), matrix with dimension \code{p1*p1} or character specifying function
-used to calculate inverted weight matrix for each group.
+\item{ref}{reference level (baseline), either an integer between \eqn{[1,p]} or \code{NULL}.
+Default value is \code{NULL}.
 \itemize{
-\item If vector, works as penalty factor. Separate penalty weights can be applied to each group of beta'ss.
-      to allow differential shrinkage. Can be 0 for some groups, which implies no shrinkage, and results in that group
-      always being included in the model.
-\item If matrix, a block diagonal matrix. Diagonal elements are inverted weights matrics for each group.
-\item if character, user should provide the function for inverted weights matrics.
-}
-Default value is rep(1, times = p).}
+\item If \code{ref} is set to be an integer between \code{[1,p]}, the group lasso penalized \emph{log-contrast} model (with log-ratios) is fitted
+with the \code{ref}-th component chosed as baseline.
+\item If \code{ref} is set to be \code{NULL}, the linearly constrained group lasso penalized \emph{log-contrast} model is fitted.
+}}
 
-\item{k}{a scaler, degree of freedom of basis.}
+\item{intercept}{Boolean, specifying whether to include an intercept.
+Default is TRUE.}
 
-\item{outer_maxiter}{\code{outer_maxiter} is the maximun munber of loops allowed for Augmented Lanrange method;
-and \code{outer_eps} is the convergence termination tolerance.}
+\item{W}{a vector of length p (the total number of groups),
+or a matrix with dimension \eqn{p_{1} \times p_{1}}{p1*p1}, where
+\code{p1=(p - length(ref)) * k},
+or character specifying the function used to calculate weight matrix for each group.
+\itemize{
+\item a vector of penalization weights for the groups of coefficients. A zero weight implies no shrinkage.
+\item a diagonal matrix with positive diagonal elements.
+\item if character string of function name or an object of type \code{function} to compute the weights.
+}}
 
-\item{mu_ratio}{\code{mu_ratio} is the increasing ratio for \code{u}. Default value is 1.01.
+\item{type}{a character string specifying which crieterion to use. The choices include
+\code{"GIC"} (default), \code{"BIC"}, and \code{"AIC"}.}
+
+\item{mu_ratio}{the increasing ratio of the penalty parameter \code{u}. Default value is 1.01.
 Inital values for scaled Lagrange multipliers are set as 0's.
-If \code{mu_ratio} < 1,
-there is no linear constraints included. Group lasso coefficients are estimated.}
+If \code{mu_ratio} < 1, the program automatically set
+the initial penalty parameter \code{u} as 0
+and \code{outer_maxiter} as 1, indicating
+that there is no linear constraint.}
+
+\item{outer_maxiter}{maximum number of loops allowed for the augmented Lanrange method.}
 
 \item{\dots}{other arguments that could be passed to FuncompCL.}
 }
 \value{
-an object of class \code{\link{GIC.FuncompCGL}} is returned.
-\item{Funcomp.CGL.fit}{a list, length of \code{k},
-                       of fitted \code{\link{FuncompCGL}} object for the full data.
-                       objects with S3 calss \code{\link{FuncompCGL}}}
-\item{lam}{the values of \code{lam} used in the fits}
-\item{MSE}{matrix of mean squared error with size \code{k} by \code{nlam} (the length of
-           actually used \code{lambda} sequence, migth pre-stop by \code{dfmax} or
-           \code{pfmax}). MSE is equivalent to likelihood under normal error model. \cr
-           \strong{Could be edited for other linkage.}}
-\item{Nzero}{a \code{k} by nlam matrix for Nzero group cut-off by \code{cut_off} and \code{lower_tri}}
+An object of S3 class \code{"GIC.FuncompCGL"} is returned, which is
+a list containing:
+\item{FuncompCGL.fit}{a list of length \code{length(k)},
+                      with fitted \code{\link{FuncompCGL}}
+                      objects of different degrees
+                      of freedom of the basis function.}
+
+\item{lam}{the sequence of the penalty parameter \code{lam}.}
+
+\item{GIC}{a \code{k} by \code{length(lam)} matirx of GIC values.}
+
+\item{lam.min}{the optimal values of the degrees of freedom \code{k}
+               and the penalty parameter \code{lam}.}
+
+\item{MSE}{a \code{k} by \code{length(lam)} matirx of mean squared errors.}
 }
 \description{
-Calculate GIC for compCL, return value of \code{lam}.
+Tune the grid values of the penalty parameter code{lam} and the degrees of freedom of
+the basis function \code{k} in the \code{FuncompCGL} model by GIC, BIC, or AIC. This
+function calculates the GIC, BIC, or AIC curve and returns the optimal values of
+\code{lam} and \code{k}.
+}
+\details{
+The \code{FuncompCGL} model estimation is conducted through minimizing the
+linearly constrained group lasso criterion
+\deqn{
+\frac{1}{2n}\|y - 1_n\beta_0 - Z_c\beta_c - Z\beta\|_2^2 + \lambda \sum_{j=1}^{p} \|\beta_j\|_2,
+s.t. \sum_{j=1}^{p} \beta_j = 0_k.}
+
+The tuning parameters can be selected by the generalized information crieterion (GIC),
+\deqn{
+GIC(\lambda,k) = \log{(\hat{\sigma}^2(\lambda,k))} +
+(s(\lambda, k) - 1)k \log{(max(p*k+p_c+1, n))} \log{(\log{n})}/n
+,}
+where
+\eqn{\hat{\sigma}^2(\lambda,k) = \|y - 1_n\hat{\beta_0}(\lambda, k) -
+Z_c\hat{\beta_c}(\lambda, k) - Z\hat{\beta}(\lambda, k) \|_{2}^{2}/n} with \eqn{\hat{\beta_0}(\lambda, k)},
+\eqn{\hat{\beta_c}(\lambda, k)} and \eqn{\hat{\beta}(\lambda, k)} being the regularized estimators
+of the regression coefficients, and \eqn{s(\lambda, k)} is the number of nonzero coefficient groups in
+\eqn{\hat{\beta}(\lambda, k)}.
 }
 \examples{
-
+\donttest{
 df_beta = 5
-p = 30 #30
+p = 30
 beta_C_true = matrix(0, nrow = p, ncol = df_beta)
-beta_C_true[3, ] <- c(-1, 0, 0, 0, -0.5) #c(-0.5, 0, 0, 0, -0.5)
-beta_C_true[1, ] <- c(1, 0, 1 , 0, -0.5) #c(0.5, 0, 1 , 0, -0.5)
-beta_C_true[2, ] <- c(0, 0,  -1,  0,  1)
-
-nfolds = 10
-k_list <- c(4,5,6)
-n_train = 100
-n_test = 500
-
-Data <- Model(n = n_train, p = p, m = 0, intercept = TRUE,
-              SNR = 3, sigma = 3,
-              rho_X = 0, rho_T = 0,
-              Corr_X = "CorrCS", Corr_T = "CorrAR",
-              df_beta = df_beta,
-              n_T = 20, obs_spar = 1, theta.add = FALSE, #c(0,0,0),
-              beta_C = as.vector(t(beta_C_true)))
-y <- drop(Data$data$y)
-n <- length(y)
-X <- Data$data$Comp
-Zc <- Data$data$Zc
-intercept <- Data$data$intercept
-m <- ifelse(is.null(Zc), 0, dim(Zc)[2]) #+ as.integer(intercept)
-#m1 <- m + as.integer(intercept)
-sseq <- Data$basis.info[,1]
-beta_C.true <- matrix(Data$beta[1:(p*(df_beta))],
-                      nrow = p, ncol = df_beta, byrow = TRUE)
-beta_curve.true <- Data$basis.info[,-1] \%*\% t(beta_C.true)
-Non_zero.true <- (1:p)[apply(beta_C.true, 1, function(x) max(abs(x)) > 0)]
-foldid <- sample(rep(seq(nfolds), length = n))
-
+beta_C_true[1, ] <- c(-0.5, -0.5, -0.5 , -1, -1)
+beta_C_true[2, ] <- c(0.8, 0.8,  0.7,  0.6,  0.6)
+beta_C_true[3, ] <- c(-0.8, -0.8 , 0.4 , 1 , 1)
+beta_C_true[4, ] <- c(0.5, 0.5, -0.6  ,-0.6, -0.6)
+n_train = 50
+n_test = 30
+k_list <- c(4,5)
+Data <- Fcomp_Model(n = n_train, p = p, m = 0, intercept = TRUE,
+                    SNR = 4, sigma = 3, rho_X = 0.2, rho_T = 0.5,
+                    df_beta = df_beta, n_T = 20, obs_spar = 1, theta.add = FALSE,
+                    beta_C = as.vector(t(beta_C_true)))
 arg_list <- as.list(Data$call)[-1]
 arg_list$n <- n_test
-Test <- do.call(Model, arg_list)
-y_test <- drop(Test$data$y)
+Test <- do.call(Fcomp_Model, arg_list)
 
-
-
-GIC_m1 <- GIC.FuncompCGL( y = y, X = X, Zc = Zc, ref = NULL,
-                          inner_eps = 1e-8, outer_eps = 1e-8, tol = 1e-8,
+## GIC_cgl: Constrained group lasso
+GIC_cgl <- GIC.FuncompCGL(y = Data$data$y, X = Data$data$Comp,
+                          Zc = Data$data$Zc, intercept = Data$data$intercept,
                           k = k_list)
+coef(GIC_cgl)
+plot(GIC_cgl)
+y_hat <- predict(GIC_cgl, Znew = Test$data$Comp, Zcnew = Test$data$Zc)
+plot(Test$data$y, y_hat, xlab = "Observed response", ylab = "Predicted response")
 
-GIC_curve <- GIC_m1$GIC
-k_opt <- GIC_m1$lammin['df']
-beta_GIC <- coef(GIC_m1)
-plot(GIC_m1, xlab = "log", k_list = k_list)
-plot.args = list(x = seq(length(GIC_m1$lam)), #GIC_m1$lam, #log(GIC_m1$lam),
-                 y = GIC_curve[1, ],
-                 ylim = range(GIC_curve),
-                 xlab= "lambda Index",#"lambda", #"log(lambda)",
-                 ylab="GIC",
-                 type="n")
-#do.call("plot",plot.args)
-# for(i in 1:length(k_list)) {
-#
-#   points(x = seq(length(GIC_m1$lam)), #GIC_m1$lam, #log(GIC_m1$lam),
-#          y = GIC_curve[i, ], col = rainbow(length(k_list))[i])
-#   text(length(GIC_m1$lam), #tail(log(GIC_m1$lam), 1),
-#        GIC_curve[i, length(GIC_m1$lam)], labels=paste(k_list[i]),
-#        cex= 1, pos= 4, col = rainbow(length(k_list))[i])
-# }
-# axis(3, at = pretty(seq(length(GIC_m1$lam))), labels = rev(pretty(GIC_m1$lam)))
-# loc  = which(GIC_curve == min(GIC_curve), arr.ind = TRUE)
+## GIC_naive: ignoring the zero-sum constraints
+## set mu_raio = 0 to identifying without linear constraints,
+## no outer_loop for Lagrange augmented multiplier
+GIC_naive <- GIC.FuncompCGL(y = Data$data$y, X = Data$data$Comp,
+                            Zc = Data$data$Zc, intercept = Data$data$intercept,
+                            k = k_list, mu_ratio = 0)
+coef(GIC_naive)
+plot(GIC_naive)
+y_hat <- predict(GIC_naive, Znew = Test$data$Comp, Zcnew = Test$data$Zc)
+plot(Test$data$y, y_hat, xlab = "Observed response", ylab = "Predicted response")
 
-
-
-
-beta_C <- matrix(beta_GIC[1:(p*k_opt)], byrow = TRUE, nrow = p)
-cat("colSums:", colSums(beta_C) , "\\r\\n")
-#Non.zero <- which(abs(beta_C[,1]) > 0)
-Non.zero <- apply(beta_C, 1, function(x) ifelse(max(abs(x)) >0, TRUE, FALSE))
-Non.zero <- (1:p)[Non.zero]
-cat("None zero groups:", Non.zero)
-#vet(beta, p = p, k = k_opt)
-
-par(mfrow=c(1,4))
-do.call("plot",plot.args)
-for(i in 1:length(k_list)) {
-  points(x = seq(length(GIC_m1$lam)), #log(GIC_m1$lam),
-         y = GIC_curve[i, ], col = rainbow(length(k_list))[i], pch = seq(length(k_list))[i])
-  text(length(GIC_m1$lam), #tail(log(GIC_m1$lam), 1),
-       GIC_curve[i, length(GIC_m1$lam)], labels=paste(k_list[i]),
-       cex= 1, pos= 4, col = rainbow(length(k_list))[i])
+## GIC_base: random select a component as reference
+## mu_ratio is set to 0 automatically once ref is set to a integer
+ref <- sample(1:p, 1)
+GIC_base <- GIC.FuncompCGL(y = Data$data$y, X = Data$data$Comp,
+                            Zc = Data$data$Zc, intercept = Data$data$intercept,
+                            k = k_list, ref = ref)
+coef(GIC_base)
+plot(GIC_base)
+y_hat <- predict(GIC_base, Znew = Test$data$Comp, Zcnew = Test$data$Zc)
+plot(Test$data$y, y_hat, xlab = "Observed response", ylab = "Predicted response")
 }
-#axis(3, at = pretty(seq(length(GIC_m1$lam))), labels = rev(pretty(GIC_m1$lam)))
 
-matplot(sseq, beta_curve.true,
-        ylab = "coeffcients curve", xlab = "TIME", #main = "TRUE",
-        ylim = range(Data$beta[1:(p*df_beta)]),
-        type = "l")
-abline(a = 0, b = 0, col = "grey", lwd = 2)
-title("TRUE", line = 0.5)
-text(0, beta_curve.true[1, Non_zero.true], labels = paste(Non_zero.true))
+}
+\references{
+Sun, Z., Xu, W., Cong, X., Li G. and Chen K. (2020) \emph{Log-contrast regression with
+functional compositional predictors: linking preterm infant's gut microbiome trajectories
+to neurobehavioral outcome}, \href{https://arxiv.org/abs/1808.02403}{https://arxiv.org/abs/1808.02403}
+\emph{Annals of Applied Statistics}.
 
-B <- splines::bs(Data$basis.info[,1], df = k_opt, intercept = TRUE)
-beta_curve <- B \%*\% t(beta_C)
-matplot(sseq, beta_curve,
-        ylab = "coef", xlab = "TIME", #main = "ESTI",
-        ylim = range(Data$beta[1:(p*df_beta)])#,
-        #type = "l"
-)
-abline(a = 0, b = 0, col = "grey", lwd = 2)
-title("Estimate", line = 0.5)
-text(0, beta_curve[1, Non.zero], labels = paste(Non.zero))
-text(tail(sseq, 1), beta_curve[dim(beta_curve)[1], Non.zero], labels = paste(Non.zero))
-plot(apply(abs(beta_C),1,sum))
-text(seq(length(GIC_m1$lam))[which(apply(abs(beta_C),1,sum) > 0)], #tail(log(GIC_m1$lam), 1),
-     apply(abs(beta_C),1,sum)[which(apply(abs(beta_C),1,sum) > 0)],
-     labels=paste(seq(length(GIC_m1$lam))[which(apply(abs(beta_C),1,sum) > 0)]),
-     cex= 1, pos= 4)
-
-title(paste0("k=", k_opt), line = 0.5)
-title(paste0("Method cgl"), outer=TRUE, line = -2)
-par(mfrow=c(1,1))
-
-##set a cutoff when you compute nonzeros
-Non.zero <- apply(beta_C, 1, function(x)
-  ifelse(sqrt(sum(x^2)) > sqrt(sum(beta_C^2))/100, TRUE, FALSE))
-Non.zero <- (1:p)[Non.zero]
-Non.zero
+Fan, Y., and Tang, C. Y. (2013) \emph{Tuning parameter selection in high
+dimensional penalized likelihood},
+\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssb.12001}{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssb.12001}
+\emph{Journal of the Royal Statistical Society. Series B} \strong{75} 531-552.
 }
 \seealso{
-\code{\link{FuncompCGL}}
+\code{\link{FuncompCGL}} and \code{\link{cv.FuncompCGL}},
+and \code{\link[=predict.GIC.FuncompCGL]{predict}},
+\code{\link[=coef.GIC.FuncompCGL]{coef}} and
+\code{\link[=plot.GIC.FuncompCGL]{plot}} methods for \code{"GIC.FuncompCGL"}
+object.
 }

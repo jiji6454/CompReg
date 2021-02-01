@@ -4,7 +4,14 @@
 using namespace Rcpp;
 using std::endl;
 
+// [[Rcpp::interfaces(r, cpp)]]
+
+// Augmented Lagrangian method (ALM) nested with Groupwise majorization descent algorithm (GMD)
+// for linearly constrained sparse group regression problem. GMD was proposed by Yang and Zou (2014) <doi:10.1007/s11222-014-9498-5>
+// The algorithm was designed for sparse log-contrast regression with functional compositional
+// predictors proposed by Sun et al. (2020) <<arXiv:1808.02403>.
 // [[Rcpp::export]]
+
 Rcpp::List ALM_GMD(arma::vec y,
                    arma::mat Z,
                    arma::mat Zc,
@@ -29,7 +36,6 @@ Rcpp::List ALM_GMD(arma::vec y,
   int inner_inter, outer_inter, i, j; /* index for loop */
   double inner_err, outer_err; /* convergence for loop */
 
-
   int n = y.size();
   int p = group_index.n_cols;
   int k = group_index.n_rows;
@@ -42,6 +48,7 @@ Rcpp::List ALM_GMD(arma::vec y,
   double S_norm, tt;
   double u;
   //double upper = 1 ;//+ 1e-10;
+
   arma::vec dd(p+1);
   arma::vec gamma(p), ita(p);
   arma::vec r(n), C_linear(k), alpha(k);
@@ -54,8 +61,6 @@ Rcpp::List ALM_GMD(arma::vec y,
   arma::vec err_flag = arma::zeros(nlam);
   arma::mat path(pp, nlam);
   arma::vec df(nlam), Ni(p);
-
-
 
   group_index -= 1;
 
@@ -73,11 +78,8 @@ Rcpp::List ALM_GMD(arma::vec y,
     }
   }
 
-
-
-  //gamma = gamma * upper / n;
+  gamma = gamma / n; //gamma = gamma * upper / n;
   //ita  *= upper;
-  gamma = gamma / n;
 
   Ni.zeros();
   df.zeros();
@@ -85,7 +87,6 @@ Rcpp::List ALM_GMD(arma::vec y,
   /*----------- outer loop for path starts-------------*/
 
   for(j = 0; j < nlam; j++) {
-
     /*----------- middle loop ALM starts-------------*/
 
     laml = pf * lambda(j);
@@ -100,8 +101,6 @@ Rcpp::List ALM_GMD(arma::vec y,
     xi.subvec(0,p-1) = gamma + u * ita;
 
     while((outer_inter <= outer_maxiter) && (outer_err > outer_eps)) {
-
-      //npass++;
       /*----------- inner loop GMD group-lasso stats-------------*/
 
       beta_old_outer = beta;
@@ -112,54 +111,51 @@ Rcpp::List ALM_GMD(arma::vec y,
 
         npass++;
         beta_old_inner = beta;
-        dd.zeros(); /*dd = 0;*/
+        dd.zeros(); //dd = 0;
 
-      //update coefficients for composition variables
-      for(i = 0; i < p; i++) {
+        //update coefficients for composition variables
+        for(i = 0; i < p; i++) {
 
-        diff_group = beta.elem(group_index.col(i));
+          diff_group = beta.elem(group_index.col(i));
 
-        S = Z.cols(group_index.col(i)).t() * r / n - alpha_mu.rows(group_index.col(i)) - u * A.cols(group_index.col(i)).t() * C_linear;
-        S += xi(i) * diff_group;
-        S_norm = sqrt(sum(S % S));
+          S = Z.cols(group_index.col(i)).t() * r / n - alpha_mu.rows(group_index.col(i)) - u * A.cols(group_index.col(i)).t() * C_linear;
+          S += xi(i) * diff_group;
+          S_norm = sqrt(sum(S % S));
 
-        tt = S_norm - laml(i);
+          tt = S_norm - laml(i);
 
-        if( tt > tol ) {
-          beta.elem(group_index.col(i)) = S * tt / (xi(i) * S_norm);
-        } else {
-          beta.elem(group_index.col(i)).fill(0.0);
+          if( tt > tol ) {
+            beta.elem(group_index.col(i)) = S * tt / (xi(i) * S_norm);
+          } else {
+            beta.elem(group_index.col(i)).fill(0.0);
+          }
+
+          diff_group -= beta.elem(group_index.col(i));
+          if(any(diff_group != 0.0)) {
+            dd(i) = sum(diff_group % diff_group);
+            r += Z.cols(group_index.col(i)) * diff_group;
+            C_linear -= A.cols(group_index.col(i)) * diff_group;
+          }
         }
 
-        diff_group -= beta.elem(group_index.col(i));
-        if(any(diff_group != 0.0)) {
-          dd(i) = sum(diff_group % diff_group);
-          r += Z.cols(group_index.col(i)) * diff_group;
-          C_linear -= A.cols(group_index.col(i)) * diff_group;
+        //update coefficients for control variables
+        diff_control = beta.subvec(p1, p1 + m - 1);
+        beta.subvec(p1, p1 + m - 1) = Zc_proj * r + diff_control;
+        diff_control -= beta.subvec(p1, p1 + m - 1);
+        if(any(diff_control != 0.0)){
+          r += Zc * diff_control;
+          dd(p) = sum(diff_control % diff_control); //std::max(dd, sum(diff_control % diff_control));
         }
 
-      }
-
-      //update coefficients for control variables
-      diff_control = beta.subvec(p1, p1 + m - 1);
-      beta.subvec(p1, p1 + m - 1) = Zc_proj * r + diff_control;
-      diff_control -= beta.subvec(p1, p1 + m - 1);
-      if(any(diff_control != 0.0)){
-        r += Zc * diff_control;
-        dd(p) = sum(diff_control % diff_control); /*std::max(dd, sum(diff_control % diff_control));*/
-      }
-
-      inner_inter++;
-      //check convergence for inner loop
-      inner_err = max(dd % (xi % xi));
-      if(inner_err <= inner_eps) {
-        inner_err =  sum(dd) / std::max(sum(beta_old_inner % beta_old_inner), 1e-30);
-      }
-
+        inner_inter++;
+        //check convergence for inner loop
+        inner_err = max(dd % (xi % xi));
+        if(inner_err <= inner_eps) {
+          inner_err =  sum(dd) / std::max(sum(beta_old_inner % beta_old_inner), 1e-30);
+        }
       }
 
       /*----------- inner loop GMD group-lasso ends-------------*/
-
       outer_inter++;
       //update lagrange multipliers and penalty term
       alpha_mu = alpha_mu + u * A.t() * C_linear;
@@ -177,6 +173,18 @@ Rcpp::List ALM_GMD(arma::vec y,
 
     /*----------- middle loop ALM ends-------------*/
 
+    /*
+     QUESTION
+     Current: after convergence,
+     absolute value of each element of long-coefficient vector beta < tol then set to 0
+     Feature: in inner loop
+     maximun absolute value of each group coefficient vector < tol then set the whole group to 0
+     for(i = 0; i < p; i++) {
+        if(max(abs(beta.elem(group_index.col(i)))) < tol ) {
+            beta.elem(group_index.col(i)).fill(0)
+        }
+     }
+     */
     ids = find(abs(beta.subvec(0, p1 - 1)) < tol);
     beta.elem(ids).fill(0);
 
@@ -220,13 +228,18 @@ Rcpp::List ALM_GMD(arma::vec y,
                             Rcpp::Named("npass") = output_ll,
                             //Rcpp::Named("u") = u,
                             Rcpp::Named("error") = output_error);
-
-
 }
 
 
+
+// [[Rcpp::interfaces(r, cpp)]]
+
+
+// Augmented Lagrangian method (ALM) nested with coordinate descent (CD) for linearly constrained
+// lasso regression problem. This algorithm follows the paper Lin et al. (2014) Variable Selection in
+// Regression with Compostional <doi:10.1093/biomet/asu031>.
 // [[Rcpp::export]]
-Rcpp::List ALM_BG(arma::vec y,
+Rcpp::List ALM_CD(arma::vec y,
                   arma::mat Z,
                   arma::mat Zc,
                   arma::mat Zc_proj,
@@ -245,11 +258,19 @@ Rcpp::List ALM_BG(arma::vec y,
                   double u_ini,
                   double tol
 ) {
+  int inner_inter, outer_inter, i, j; /* index for loop */
+  double inner_err, outer_err; /* convergence for loop */
 
   int n = y.size();
   int p = Z.n_cols;
   int m = Zc.n_cols;
   int nlam = lambda.size();
+
+  double C_linear;
+  double u;
+  double S;
+  double tt;
+  int npass = 0;
 
   arma::vec gamma(p);
   arma::vec xi(p);
@@ -258,21 +279,12 @@ Rcpp::List ALM_BG(arma::vec y,
   arma::vec Aalpha_mu(p);
   //double alpha_mu = 0;
   arma::vec laml(p);
-  double C_linear;
-  double u;
-  double S;
-  double tt;
-  int npass = 0;
-  int inner_inter, outer_inter, i, j; /* index for loop */
-  double inner_err, outer_err; /* convergence for loop */
-
   arma::vec diff_control(m);
   arma::vec beta_old_inner(p+m), beta_old_outer(p+m), Ldiff(p+m);
   arma::vec err_flag(nlam);
   arma::mat path(p+m, nlam);
   arma::vec df(nlam), Ni(p);
   arma::uvec ids;
-
 
   for(i = 0; i < p; i++) {
     gamma(i) = sum(Z.col(i) % Z.col(i));
@@ -325,9 +337,7 @@ Rcpp::List ALM_BG(arma::vec y,
         for(i = 0; i < p; i++) {
 
           r = r + Z.col(i) * beta(i);
-          //C_linear = C_linear - beta(i);
           C_linear = C_linear - A(i) * beta(i);
-          //S = sum(Z.col(i) % r) / n - u * C_linear - alpha_mu;
           S = sum(Z.col(i) % r) / n - u * A(i) * C_linear - Aalpha_mu(i);
           tt = std::abs(S) - laml(i);
           if( tt > 0.0 ) {
@@ -337,19 +347,10 @@ Rcpp::List ALM_BG(arma::vec y,
               beta(i) =  -tt / xi(i);
             }
             r = r - Z.col(i) * beta(i);
-            //C_linear = C_linear + beta(i);
             C_linear = C_linear + A(i) * beta(i);
           } else {
             beta(i) = 0.0;
           }
-
-          /*Rcout << "i " << i + 1 <<
-           " S " << S <<
-           " tt " << tt <<
-           "update" << (tt > 0.0) <<
-           " beta " << beta(i)  <<
-           " lam " << laml(i) <<
-           " xi " << xi(i) << endl;*/
         }
 
         //update coeffients for control variables
@@ -367,9 +368,9 @@ Rcpp::List ALM_BG(arma::vec y,
         if( inner_err < (inner_eps * (p + 1)) ) {
           inner_err = inner_err / std::max(sum(beta_old_inner % beta_old_inner), 1e-30);
         }
+
+        // internal check point output
         //Rcout << "inner_int: " << inner_inter - 1 << "; inner_err: " << inner_err << endl;
-
-
       }
 
       /*----------- inner loop Block-wise-lasso ends-------------*/
@@ -386,6 +387,8 @@ Rcpp::List ALM_BG(arma::vec y,
         Ldiff = beta - beta_old_outer;
         outer_err = sum(Ldiff % Ldiff) / std::max(sum(beta_old_outer % beta_old_outer), 1e-30);
       }
+
+      // internal check point output
       //Rcout << "outer_int: " << outer_inter - 1 << "; outer_err: " << outer_err << endl;
 
     }
@@ -435,39 +438,39 @@ Rcpp::List ALM_BG(arma::vec y,
                             Rcpp::Named("npass") = output_ll,
                             //Rcpp::Named("u") = u,
                             Rcpp::Named("error") = output_error);
-
-
-
 }
 
 
+// Augmented Lagrangian method (ALM) nested with coordinate descent (CD) for zero-sum constraints
+// with lasso regression problem. This algorithm follows the paper Lin et al. (2014) Variable
+// Selection in Regression with Compostional <doi:10.1093/biomet/asu031>.
 // [[Rcpp::export]]
-Rcpp::List ALM_B(arma::vec y,
-                 arma::mat Z,
-                 arma::mat Zc,
-                 arma::mat Zc_proj,
-                 arma::vec beta,
-                 arma::vec lambda,
-                 arma::vec pf,
-                 int dfmax,
-                 int pfmax,
-                 int inner_maxiter,
-                 int outer_maxiter,
-                 double inner_eps,
-                 double outer_eps,
-                 double mu_ratio,
-                 double u_ini,
-                 double tol
+Rcpp::List ALM_CD_comp(arma::vec y,
+                       arma::mat Z,
+                       arma::mat Zc,
+                       arma::mat Zc_proj,
+                       arma::vec beta,
+                       arma::vec lambda,
+                       arma::vec pf,
+                       int dfmax,
+                       int pfmax,
+                       int inner_maxiter,
+                       int outer_maxiter,
+                       double inner_eps,
+                       double outer_eps,
+                       double mu_ratio,
+                       double u_ini,
+                       double tol
 ) {
+  int inner_inter, outer_inter, i, j; /* index for loop */
+  double inner_err, outer_err; /* convergence for loop */
 
   int n = y.size();
   int p = Z.n_cols;
   int m = Zc.n_cols;
   int nlam = lambda.size();
-
-  int inner_inter, outer_inter, i, j; /* index for loop */
   int npass = 0;
-  double inner_err, outer_err; /* convergence for loop */
+
   double u;
   double S;
   double tt;
@@ -485,9 +488,6 @@ Rcpp::List ALM_B(arma::vec y,
   arma::mat path(p+m, nlam);
   arma::vec df(nlam), Ni(p);
   arma::uvec ids;
-
-
-
 
   for(i = 0; i < p; i++) {
     gamma(i) = sum(Z.col(i) % Z.col(i));
@@ -549,14 +549,6 @@ Rcpp::List ALM_B(arma::vec y,
           } else {
             beta(i) = 0.0;
           }
-
-          /*Rcout << "i " << i + 1 <<
-           " S " << S <<
-           " tt " << tt <<
-           "update" << (tt > 0.0) <<
-           " beta " << beta(i)  <<
-           " lam " << laml(i) <<
-           " xi " << xi(i) << endl;*/
         }
 
         //update coeffients for control variables
@@ -568,6 +560,7 @@ Rcpp::List ALM_B(arma::vec y,
         }
 
         inner_inter++;
+
         //check convergence for inner loop
         Ldiff = beta - beta_old_inner;
         inner_err = sum((beta_old_inner - beta) % (beta_old_inner - beta));
@@ -575,11 +568,8 @@ Rcpp::List ALM_B(arma::vec y,
           inner_err = inner_err / std::max(sum(beta_old_inner % beta_old_inner), 1e-30);
         }
 
-        /*inner_err = sum((beta_old_inner - beta) % (beta_old_inner - beta));
-         inner_err = inner_err / std::max(sum(beta_old_inner % beta_old_inner), 1e-30);
-         inner_inter++;*/
-
-        //Rcout << "inner_int: " << inner_inter - 1 << "; inner_err: " << inner_err << endl;
+        //internal check point output
+        //Rcout << "inner_int: " << inner_inter << "; inner_err: " << inner_err << endl;
 
       }
 
@@ -646,8 +636,4 @@ Rcpp::List ALM_B(arma::vec y,
                             Rcpp::Named("npass") = output_ll,
                             //Rcpp::Named("u") = u,
                             Rcpp::Named("error") = output_error);
-
-
-
 }
-

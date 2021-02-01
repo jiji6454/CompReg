@@ -2,47 +2,66 @@
 % Please edit documentation in R/tools.R
 \name{predict.GIC.compCL}
 \alias{predict.GIC.compCL}
-\title{make predictions from a \code{"GIC.compCL"} object.}
+\title{Make predictions based on a \code{"GIC.compCL"} object.}
 \usage{
 \method{predict}{GIC.compCL}(object, Znew, Zcnew = NULL, s = "lam.min", ...)
 }
 \arguments{
-\item{object}{fitted \code{"GIC.compCL"} model}
+\item{object}{fitted \code{"GIC.compCL"} model.}
 
-\item{Znew}{new compositional data}
+\item{Znew}{\code{z} matrix as in \code{compCL} with new compositional data
+or categorical data.}
 
-\item{Zcnew}{new time-invariant covarites}
+\item{Zcnew}{\code{Zc} matrix as in \code{compCL} with new data for other
+covariates. Default is \code{NULL}}
 
-\item{s}{\code{"lam.min"} or user provided value}
+\item{s}{specify the \code{lam} at which prediction(s) is requested.
+\itemize{
+  \item \code{s = "lam.min"} (default), \code{lam} that obtains the minimun value of GIC values.
+  \item if \code{s} is numeric, it is taken as the value(s) of lam to be used.
+  \item if \code{s = NULL}, uses the whole sequence of \code{lam} stored in the
+        \code{"GIC.compCL"} object.
+}}
 
-\item{\dots}{not used. Other arguments to predict.}
+\item{...}{not used.}
+}
+\value{
+predicted values at the requested values of \code{s}.
 }
 \description{
-This function makes prediction from a GIC  \code{compCL} model,
-using the stored \code{compCL.fit} object and the optimal value chose for \code{lambda}.
+This function makes prediction based on a \code{"GIC.compCL"} model,
+using the stored \code{"compCL.fit"} object and the optimal value of \code{lambda}.
+}
+\details{
+\code{s} is the vector at which predictions are requested. If \code{s} is not in the lambda
+sequence used for fitting the model, the \code{predict} function uses linear interpolation.
 }
 \examples{
 p = 30
 n = 50
 beta = c(1, -0.8, 0.6, 0, 0, -1.5, -0.5, 1.2)
 beta = c(beta, rep(0, times = p - length(beta)))
-Comp_data = comp_Model(n = n, p = p,
-                            rho = 0.2, sigma = 0.5,
-                            gamma  = 0.5, add.on = 1:5,
-                            beta = beta, intercept = FALSE)
-test_data = comp_Model(n = 100, p = p,
-                            rho = 0.2, sigma = 0.5,
-                            gamma  = 0.5, add.on = 1:5,
-                            beta = beta, intercept = FALSE)
-GICm <- GIC.compCL(y = Comp_data$y,
-                   Z = Comp_data$X.comp, Zc = Comp_data$Zc,
-                   intercept = Comp_data$intercept,
-                   lam = NULL,lambda.factor = 0.0001,
-                   dfmax = p, outer_eps = 1e-10, mu_ratio = 1)
-y_hat = predict(GICm, Znew = test_data$X.comp, Zcnew = test_data$Zc)
-plot(y_hat, test_data$y)
+Comp_data = comp_Model(n = n, p = p, beta = beta, intercept = FALSE)
+test_data = comp_Model(n = 100, p = p, beta = beta, intercept = FALSE)
+GICm1 <- GIC.compCL(y = Comp_data$y, Z = Comp_data$X.comp,
+                    Zc = Comp_data$Zc, intercept = Comp_data$intercept)
+y_hat = predict(GICm1, Znew = test_data$X.comp, Zcnew = test_data$Zc)
+predmat = predict(GICm1, Znew = test_data$X.comp, Zcnew = test_data$Zc, s = c(1, 0.5, 1))
+plot(test_data$y, y_hat, xlab = "Observed value", ylab = "Predicted value")
 abline(a = 0, b = 1, col = "red")
+
+}
+\references{
+Lin, W., Shi, P., Peng, R. and Li, H. (2014) \emph{Variable selection in
+regression with compositional covariates},
+\href{https://academic.oup.com/biomet/article/101/4/785/1775476}{https://academic.oup.com/biomet/article/101/4/785/1775476}.
+\emph{Biometrika} \strong{101} 785-979.
 }
 \seealso{
-\code{\link{GIC.compCL}}
+\code{\link{GIC.compCL}} and \code{\link{compCL}}, and
+\code{\link[=coef.GIC.compCL]{coef}} and
+\code{\link[=plot.GIC.compCL]{plot}} methods for \code{"GIC.compCL"}.
+}
+\author{
+Zhe Sun and Kun Chen
 }

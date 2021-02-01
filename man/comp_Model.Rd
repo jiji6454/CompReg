@@ -2,59 +2,83 @@
 % Please edit documentation in R/simulation.R
 \name{comp_Model}
 \alias{comp_Model}
-\title{Simulation for composition data}
+\title{Simulation for log-contrast model.}
 \usage{
 comp_Model(n, p, rho = 0.2, sigma = 0.5, gamma = 0.5, add.on = 1:5,
-  beta = c(c(1, -0.8, 0.6, 0, 0, -1.5, -0.5, 1.2), rep(0, times = p - 8)),
-  beta0 = 1, intercept = TRUE)
+           beta = c(c(1, -0.8, 0.6, 0, 0, -1.5, -0.5, 1.2), rep(0, times = p - 8)),
+           beta0  = 1, intercept = TRUE)
 }
 \arguments{
-\item{n}{sample size.}
+\item{n}{sample size}
 
-\item{p}{size of compositional predictors falling in \eqn{S^p}.}
+\item{p}{number of components in the compositional data}
 
-\item{rho}{a scaler used to generate \code{p*p} autocorrelation matrix.}
+\item{rho}{parameter used to generate the \eqn{p \times p}{p*p} autocorrelation
+matrix for correlations among the components.
+Default is 0.2.}
 
-\item{sigma}{standard deviation for noise terms, which follows iid norm distribution with mean 0.}
+\item{sigma}{standard deviation for the noise terms, which are iid normal with mean 0.
+Default is 0.5.}
 
-\item{gamma, add.on}{To generate compsotional data, we first generate \code{n*p} matrix \code{X} from multivariate normal distribution and
-than transform it to compostional data.
-\code{gamma} is a scaler and add.on is a index vector. Assign \code{log(p)*gamma} to means of \code{X} for columns
-\code{add.on}, while others with 0's.}
+\item{gamma}{a scaler. For the high level mean component(s), \code{log(p * gamma)} is added to
+the "non-normalized" data \code{w_i} before the data are
+converted to compositional.}
 
-\item{beta}{coefficients for composition variables.}
+\item{add.on}{an index vector with value(s) in \code{[1,p]}, specifying which component(s)
+of compositions is of high level mean. Default is \code{1:5}.}
 
-\item{beta0}{coefficient for intercept.}
+\item{beta}{coefficients for the compositional variables.}
 
-\item{intercept}{including intercept or not to generate response variable. Default value is TRUE.}
+\item{beta0}{coefficient for the intercept. Default is 1.}
+
+\item{intercept}{whether to include an intercept. Default is \code{FALSE}.}
 }
 \value{
-A list of data
-\item{y}{A vector of simulated response}
-\item{Z}{A matrix of simulated log of compositional predictors, with size n*p}
-\item{Zc}{A matrix of simulated covariates except compositional ones}
-\item{intercept}{A boolean indicating whether including intercept}
-\item{beta}{true coefficient beta}
-\item{X.comp}{A matrix of simulated compositional predictors of size n*p}
+A list containing:
+\item{y}{a n-vector of the simulated response}
+\item{X.comp}{a matrix of the simulated compositional predictors of dimension
+              \eqn{n \times p}{n*p}}
+\item{Z}{a matrix of the log-transformed compositional predictors}
+\item{Zc}{a matrix of the simulated covariates}
+\item{intercept}{whether an intercept is included}
+\item{beta}{the true coefficient vector}
 }
 \description{
-Simulate compositional data.
+Simulate data for log-contrast model with a single set of compositional data.
 }
 \details{
-The setup of this simulation follows Variable selection in regression with compositional covariates by WEI LIN, PIXU SHI, RUI FENG AND HONGZHE LI.
+The setup of this simulation follows
+Lin, W., Shi, P., Peng, R. and Li, H. (2014) \emph{Variable selection in regression with compositional covariates},
+\href{https://academic.oup.com/biomet/article/101/4/785/1775476}{https://academic.oup.com/biomet/article/101/4/785/1775476}.
+\cr
+Specifically, we first generate the correlation matrix among the components
+\code{X.Sigma} by \code{rho} with an autoregressive correlation structure. we then
+generate the "non-normalized" data \eqn{w_i} for each subject from
+multivariate normal distribution with covariance \code{X.Sigma} and mean
+determined by \code{add.on} and \code{gamma}. Each \eqn{w_i} is a vector of
+length \code{p}.
+Finally, the compositional covariates are obtained as
+\deqn{
+x_{ij}=exp(w_{ij})/\sum_{k=1}^{p}exp(w_{ik}),
+}
+for each subject \eqn{i=1,...,n} and component \eqn{j=1,...,p}.
+\cr
 }
 \examples{
-
-n = 50
 p = 30
-rho = 0.2
-sigma = 0.5
-gamma = 0.5
-add.on = 1:5
 beta = c(1, -0.8, 0.6, 0, 0, -1.5, -0.5, 1.2)
 beta = c( beta, rep(0, times = p - length(beta)) )
-intercept = FALSE
-Comp_data = comp_Model(n = n, p = p, rho = rho, sigma = sigma, gamma  = gamma,
-                       add.on = add.on, beta = beta, intercept = intercept)
+Data = comp_Model(n = 50, p = p, intercept = FALSE,
+                  rho = 0.2, sigma = 0.5, gamma  = 0.5, add.on = 1:5,
+                  beta = beta)
 
+}
+\references{
+Lin, W., Shi, P., Peng, R. and Li, H. (2014) \emph{Variable selection in
+regression with compositional covariates},
+\href{https://academic.oup.com/biomet/article/101/4/785/1775476}{https://academic.oup.com/biomet/article/101/4/785/1775476}.
+\emph{Biometrika} \strong{101} 785-979.
+}
+\author{
+Zhe Sun and Kun Chen
 }

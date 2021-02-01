@@ -2,33 +2,66 @@
 % Please edit documentation in R/tools.R
 \name{coef.cv.compCL}
 \alias{coef.cv.compCL}
-\title{get coefficients from a cross-validation "cv.compCL" object.}
+\title{Extract estimated coefficients from a \code{"cv.compCL"} object.}
 \usage{
-\method{coef}{cv.compCL}(object, trim = FALSE, s = c("lam.min", "lam.1se"),
-  ...)
+\method{coef}{cv.compCL}(object, trim = FALSE, s = c("lam.min", "lam.1se"), ...)
 }
 \arguments{
-\item{object}{fitted \code{\link{cv.compCL}} object.}
+\item{object}{fitted \code{"\link{cv.compCL}"} object.}
 
-\item{trim}{logical, used the trimmed result or not. Default is FASLE.}
+\item{trim}{whether to use the trimmed result. Default is FASLE.}
 
-\item{s}{value(s) of the penalty parameter \code{lam} at which predictions are required.
-Default is the value \code{s="lam.min"} stored on the CV \code{object}, it is the
-optimal value of \code{lam} that gives minimum.
-Alternatively \code{s="lambda.min"} can be used,  it is the largest value of \code{lam}
-such that error is within 1 standard error of the minimum.
-If \code{s} is numeric, it is taken as the value(s) of \code{lam} to be used.}
+\item{s}{value(s) of the penalty parameter \code{lam} at which coefficients are requested.
+\itemize{
+\item \code{s="lam.min"} (default) stored in the \code{cv.compCL} object,
+      which gives value of \code{lam} that achieves the minimum
+      cross-vadilation error.
+\item \code{s="lambda.min"} which gives the largest value of \code{lam}
+       such that 1 standard error above the minimum of the cross-validation errors is achieved.
+\item If \code{s} is numeric, it is taken as the value(s) of \code{lam} to
+      be used.
+\item If \code{s = NULL}, the whole sequence of \code{lam} stored in the
+      \code{cv.compCGL} object is used.
+}}
 
-\item{\dots}{not used. Other arguments to predict.}
+\item{\dots}{not used.}
 }
 \value{
-The coefficients at the requested values for \code{lam}.
+The coefficients at the requested tuning parameter values in \code{s}.
 }
 \description{
-This function gets coefficients or makes coefficient predictions from a cross-validated
-\code{compCL} model, using the stored \code{"compCL.fit"} object,
-and the optimal value chosen for \code{lam}.
+This function gets coefficients from a \code{compCL} object, using the
+stored \code{"compCL.fit"} object.
+}
+\details{
+\code{s} is a vector of lambda values at which the coefficients are requested. If \code{s} is not in the
+\code{lam} sequence used for fitting the model, the \code{coef} function will use linear
+interpolation, so the function should be used with caution.
+}
+\examples{
+p = 30
+n = 50
+beta = c(1, -0.8, 0.6, 0, 0, -1.5, -0.5, 1.2)
+beta = c(beta, rep(0, times = p - length(beta)))
+Comp_data = comp_Model(n = n, p = p, beta = beta, intercept = FALSE)
+cvm1 <- cv.compCL(y = Comp_data$y, Z = Comp_data$X.comp,
+                  Zc = Comp_data$Zc, intercept = Comp_data$intercept)
+coef(cvm1)
+coef(cvm1, s = NULL)
+coef(cvm1, s = c(1, 0.5, 0.1))
+
+}
+\references{
+Lin, W., Shi, P., Peng, R. and Li, H. (2014) \emph{Variable selection in
+regression with compositional covariates},
+\href{https://academic.oup.com/biomet/article/101/4/785/1775476}{https://academic.oup.com/biomet/article/101/4/785/1775476}.
+\emph{Biometrika} \strong{101} 785-979.
 }
 \seealso{
-\code{\link{cv.compCL}}
+\code{\link{cv.compCL}} and \code{\link{compCL}}, and
+\code{\link[=predict.cv.compCL]{predict}} and \code{\link[=plot.cv.compCL]{plot}} methods
+for \code{"cv.compCL"} object.
+}
+\author{
+Zhe Sun and Kun Chen
 }

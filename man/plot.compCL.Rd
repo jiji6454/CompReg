@@ -2,27 +2,49 @@
 % Please edit documentation in R/tools.R
 \name{plot.compCL}
 \alias{plot.compCL}
-\title{plot coefficients from a \code{"compCL"} object}
+\title{Plot solution paths from a \code{"compCL"} object.}
 \usage{
-\method{plot}{compCL}(x, xlab = c("norm", "log"), label = FALSE, ...)
+\method{plot}{compCL}(x, xlab = c("lam", "norm"), label = FALSE, ...)
 }
 \arguments{
-\item{x}{fitted \code{"compCL"} model.}
+\item{x}{fitted \code{"\link{compCL}"} model.}
 
-\item{xlab}{What is on the X-axis. "\code{lambda} against \code{log(lambda)} (default)
-or "\code{norm}" against \code{L1-norm} .}
+\item{xlab}{what is on the X-axis. \code{"lam"} plots against the log-lambda sequence
+(default) and \code{"norm"} against the L1-norm of the coefficients.}
 
-\item{label}{if TRUE, lable the curve with variable sequence numbers.}
+\item{label}{if TRUE, label the curve with the variable sequence numbers. Default is \code{FALSE}.}
 
-\item{\dots}{Other graphical parameters to plot.}
+\item{...}{other graphical parameters.}
+}
+\value{
+No return value. Side effect is a base R plot.
 }
 \description{
-Produces a coefficient profile plot of the coefficient paths for a fitted
-\code{"compCL"} object.
+Produce a coefficient profile plot from a fitted
+\code{"\link{compCL}"} object.
 }
 \details{
-A plot is prodoced, and nothing is returned.
+A coefficient profile plot for the compositional predictors is produced.
+}
+\examples{
+Comp_data = comp_Model(n = 50, p = 30)
+Comp_fit = compCL(y = Comp_data$y, Z = Comp_data$X.comp, Zc = Comp_data$Zc,
+                  intercept = Comp_data$intercept)
+plot(Comp_fit)
+plot(Comp_fit, xlab = "norm", label = TRUE)
+
+}
+\references{
+Lin, W., Shi, P., Peng, R. and Li, H. (2014) \emph{Variable selection in
+regression with compositional covariates},
+\href{https://academic.oup.com/biomet/article/101/4/785/1775476}{https://academic.oup.com/biomet/article/101/4/785/1775476}.
+\emph{Biometrika} \strong{101} 785-979.
 }
 \seealso{
-\code{\link{compCL}}
+\code{\link{compCL}} and \code{\link[=print.compCL]{print}},
+\code{\link[=predict.compCL]{predict}} and \code{\link[=coef.compCL]{coef}} methods
+for \code{"compCL"} object.
+}
+\author{
+Zhe Sun and Kun Chen
 }
