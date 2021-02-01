@@ -1,18 +1,13 @@
-src/RcppExports*
-.git_old/
-temp/
-Run_real/
-Run_simulation/
-
-# >>> OS Files <<< 
-.DS_Store
-# <<< OS Files >>>
+## >>> OS Files <<< 
+#.DS_Store
+## <<< OS Files >>>
 
 # >>> R Files <<<
 .Rproj.user
 .Rhisory
 .RData
 .Rbuildignore
+## src/RcppExports*
 # <<< R Files >>>
 
 # >>> R Package Files <<<
@@ -27,3 +22,9 @@ src/*.so
 src-i386/
 src-x64/
 # <<< Compiling Files >>>
+
+# >>> Others <<<
+temp/
+Run_real/
+Run_simulation/
+# <<< Ohers >>>
