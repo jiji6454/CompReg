@@ -7,12 +7,15 @@
 .Rhisory
 .RData
 .Rbuildignore
+*.Rproj
 ## src/RcppExports*
 # <<< R Files >>>
 
 # >>> R Package Files <<<
 vignettes/
 inst/include/*.h
+MD5
+build/*.rds
 # <<< R Package Files >>>
 
 # >>> Compiling Files <<<
@@ -27,4 +30,5 @@ src-x64/
 temp/
 Run_real/
 Run_simulation/
+README_Local.md
 # <<< Ohers >>>

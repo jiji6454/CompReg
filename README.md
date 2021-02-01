@@ -1,3 +1,3 @@
-Version 0.0.0.901
-Add log contract model for Functional compositional regression in FuncompCGL and cv.FuncompCGL
-Add GIC.FuncompCGL
+Version 0.0.0.902
+
+Pre-release version for R CRAN
